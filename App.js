@@ -1,20 +1,51 @@
 import { StatusBar } from 'expo-status-bar';
 import { Dimensions } from 'react-native';
 import { StyleSheet, Text, View, Button, ScrollView  } from 'react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import * as Location from 'expo-location';
 
 const ScreenWidth = Dimensions.get('window').width;
-console.log('ScreenWidth:', ScreenWidth);
+// console.log('ScreenWidth:', ScreenWidth);
 
 const App = () => {
   // This is a simple React Native app that uses Expo.
 // const {width:ScreenWidth, height:ScreenHeight} = Dimensions.get('window');
+  const [location, setLocation] = useState(null)
+  const [city, setCity] = useState(null)
+  const [errorMsg, setErrorMsg] = useState(null)
+  const [permitted, setPermitted] = useState(true);
+
+  const locationData = async () => {
+    const {granted} = await Location.requestForegroundPermissionsAsync();
+
+    if (!granted) {
+      setPermitted(false);
+      setErrorMsg('Permission to access location was denied');
+      return;
+    }
+
+    // console.log('Permission granted:', granted);
+
+    const {coords: {latitude, longitude}} = await Location.getCurrentPositionAsync({accuracy:5});
+    console.log('Location coordinates:', latitude, longitude);
+
+    const address = await Location.reverseGeocodeAsync({latitude, longitude}, {useGoogleMaps: false});
+    console.log('Address:', address);
+    console.log('City:', address[0].city);
+
+    const cityName = address[0].city;
+    setCity(cityName);
+  }
+
+  useEffect(() => {
+    locationData();
+  }, []);
 
   return (
     <View style={styles.container}>
 
       <View style={styles.cityContainer}>
-        <Text style={styles.city}>Melbourne</Text>
+        <Text style={styles.city}>{city}</Text>
       </View>
 
       <View style={styles.regDateContainer}>
@@ -24,6 +55,7 @@ const App = () => {
       <ScrollView
         horizontal
         pagingEnabled={true}
+        showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.weather}>
         
         <View style={styles.weatherInner}>

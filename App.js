@@ -1,7 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { Dimensions } from 'react-native';
 import { StyleSheet, Text, View, Button, ScrollView  } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import * as Location from 'expo-location';
 
 const ScreenWidth = Dimensions.get('window').width;
@@ -15,6 +15,12 @@ const App = () => {
   const [errorMsg, setErrorMsg] = useState(null)
   const [permitted, setPermitted] = useState(true);
 
+
+  // google maps API key : AIzaSyD18KGR4Oib02zqCZy_YmR_PJKS_7UwMu0
+  // https://www.googleapis.com/geolocation/v1/geolocate?key=AIzaSyD18KGR4Oib02zqCZy_YmR_PJKS_7UwMu0
+
+  // Reverse geocoding with google maps API https://maps.googleapis.com/maps/api/geocode/json?latlng=40.714224,-73.961452&key=AIzaSyD18KGR4Oib02zqCZy_YmR_PJKS_7UwMu0
+
   const locationData = async () => {
     const {granted} = await Location.requestForegroundPermissionsAsync();
 
@@ -24,17 +30,33 @@ const App = () => {
       return;
     }
 
-    // console.log('Permission granted:', granted);
-
+    // Get the current position of the device
     const {coords: {latitude, longitude}} = await Location.getCurrentPositionAsync({accuracy:5});
-    console.log('Location coordinates:', latitude, longitude);
 
-    const address = await Location.reverseGeocodeAsync({latitude, longitude}, {useGoogleMaps: false});
-    console.log('Address:', address);
-    console.log('City:', address[0].city);
+    // Get the location state with the current position
+    // const address = await Location.reverseGeocodeAsync({latitude, longitude}, {useGoogleMaps: false});
 
-    const cityName = address[0].city;
-    setCity(cityName);
+    const myApiKey = "AIzaSyD18KGR4Oib02zqCZy_YmR_PJKS_7UwMu0";
+    const apiURL = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${myApiKey}`;
+
+    const response = await fetch(apiURL);
+    const data = await response.json();
+    
+    // Check the country code
+    if (data.results[0].address_components[5].short_name == 'AU') {
+
+      let cityNcountry = data.results[0].address_components[2].long_name + ', ' + data.results[0].address_components[5].short_name;
+      setCity(cityNcountry);
+    } else {
+      console.log('Not in Australia');
+      let cityNcountry = data.results[0].address_components[3].long_name + ', ' + data.results[0].address_components[6].short_name;
+      setCity(cityNcountry);
+    }
+
+    // Set city name from the address with EXPO Location API
+    // const cityName = address[0].city;
+    // setCity(cityName);
+
   }
 
   useEffect(() => {
@@ -54,7 +76,7 @@ const App = () => {
 
       <ScrollView
         horizontal
-        pagingEnabled={true}
+        pagingEnabled
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.weather}>
         

@@ -1,9 +1,15 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Button  } from 'react-native';
+import { Dimensions } from 'react-native';
+import { StyleSheet, Text, View, Button, ScrollView  } from 'react-native';
 import React, { useState } from 'react';
+
+const ScreenWidth = Dimensions.get('window').width;
+console.log('ScreenWidth:', ScreenWidth);
 
 const App = () => {
   // This is a simple React Native app that uses Expo.
+// const {width:ScreenWidth, height:ScreenHeight} = Dimensions.get('window');
+
   return (
     <View style={styles.container}>
 
@@ -11,16 +17,45 @@ const App = () => {
         <Text style={styles.city}>Melbourne</Text>
       </View>
 
-      <View style={styles.weatherContainer}>
-        <View style={styles.day}>
-          <Text style={styles.regDate}>11/06/2025 Weds 10:26</Text>
-          <Text style={styles.desc}>Weather</Text>
-        </View>
-        <View style={styles.tempContainer}>
-          <Text style={styles.temp}>25</Text>
-        </View>
+      <View style={styles.regDateContainer}>
+        <Text style={styles.regDate}>11/06/2025 Weds 10:26</Text>
       </View>
 
+      <ScrollView
+        horizontal
+        pagingEnabled={true}
+        contentContainerStyle={styles.weather}>
+        
+        <View style={styles.weatherInner}>
+          <View style={styles.day}>
+            <Text style={styles.desc}>Cloudy</Text>
+          </View>
+
+          <View style={styles.tempContainer}>
+            <Text style={styles.temp}>25</Text>
+          </View>
+        </View>
+
+        <View style={styles.weatherInner}>
+          <View style={styles.day}>
+            <Text style={styles.desc}>Cloudy</Text>
+          </View>
+          <View style={styles.tempContainer}>
+            <Text style={styles.temp}>25</Text>
+          </View>
+        </View>
+
+        <View style={styles.weatherInner}>
+          <View style={styles.day}>
+            <Text style={styles.desc}>Cloudy</Text>
+          </View>
+          <View style={styles.tempContainer}>
+            <Text style={styles.temp}>25</Text>
+          </View>
+        </View>
+
+
+      </ScrollView>
       <StatusBar style='auto'/>
     </View>
   );
@@ -34,11 +69,11 @@ const styles = StyleSheet.create({
   },
 
   cityContainer: {
-    flex: 1,
+    flex: 0.3,
   },
 
   city: {
-    flex: 1,
+    flex: 0.5,
     marginTop: 60,
     paddingTop: 20,
     fontSize: 40,
@@ -47,12 +82,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
-  weatherContainer: {
-    flex: 3,
-  },
-
   day: {
     flex: 0.2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  regDateContainer: {
+    justifyContent: 'center',
     alignItems: 'center',
   },
 
@@ -66,10 +103,19 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     borderRadius: 20,
+    overflow: 'hidden',
+  },
+
+  weather: {
+  },
+
+  weatherInner: {
+    flex: 3,
+    width: ScreenWidth,
   },
 
   desc: {
-    flex: 1.5,
+    flex: 1,
     alignItems: 'center',
     marginTop: 20,
     fontSize: 25,

@@ -2,19 +2,22 @@ import { StatusBar } from 'expo-status-bar';
 import { Dimensions } from 'react-native';
 import { StyleSheet, Text, View, Button, ScrollView  } from 'react-native';
 import React, { use, useEffect, useState } from 'react';
-import {GOOGLE_LOCATION_API_KEY} from '@env';
+import {GOOGLE_LOCATION_API_KEY, WEATHER_API_KEY} from '@env';
 import * as Location from 'expo-location';
+
 
 const ScreenWidth = Dimensions.get('window').width;
 console.log('ScreenWidth:', ScreenWidth);
 
+
 const App = () => {
   // This is a simple React Native app that uses Expo.
-// const {width:ScreenWidth, height:ScreenHeight} = Dimensions.get('window');
+
   const [location, setLocation] = useState(null)
   const [city, setCity] = useState(null)
   const [errorMsg, setErrorMsg] = useState(null)
   const [permitted, setPermitted] = useState(true);
+  const [dailyWeather, setDailyWeather] = useState([]);
 
   const locationData = async () => {
     const {granted} = await Location.requestForegroundPermissionsAsync();
@@ -33,24 +36,28 @@ const App = () => {
 
     const apiURL = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_LOCATION_API_KEY}`;
 
-    console.log('API:', GOOGLE_LOCATION_API_KEY);
-
     const response = await fetch(apiURL);
     const data = await response.json();
 
-    // Check if the response is valid
-    console.log('Response:', data);
+    const weatherApiURL = `https://api.openweathermap.org/data/3.0/onecall?lat=${latitude}&lon=${longitude}&exclude=daily&appid=${WEATHER_API_KEY}`;
+
+    const weatherResponse = await fetch(weatherApiURL);
+    const weatherData = await weatherResponse.json();
+
+    console.log('Weather Data:', weatherData.results);
     
     // Check the country code
     if (data.results[0].address_components[5].short_name == 'AU') {
 
       // let cityNcountry = data.results[0].address_components[2].long_name + ', ' + data.results[0].address_components[5].short_name;
+
       setCity(data.results[0].address_components[2].long_name);
 
     } else {
       console.log('Not in Australia');
 
       // let cityNcountry = data.results[0].address_components[3].long_name + ', ' + data.results[0].address_components[6].short_name;
+
       setCity(data.results[0].address_components[3].long_name);
     }
 
@@ -156,11 +163,9 @@ const styles = StyleSheet.create({
   },
 
   weather: {
-    flex:1,
   },
 
   weatherInner: {
-    flex: 1,
     width: ScreenWidth,
   },
 

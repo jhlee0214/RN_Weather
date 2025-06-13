@@ -2,10 +2,11 @@ import { StatusBar } from 'expo-status-bar';
 import { Dimensions } from 'react-native';
 import { StyleSheet, Text, View, Button, ScrollView  } from 'react-native';
 import React, { use, useEffect, useState } from 'react';
+import {GOOGLE_LOCATION_API_KEY} from '@env';
 import * as Location from 'expo-location';
 
 const ScreenWidth = Dimensions.get('window').width;
-// console.log('ScreenWidth:', ScreenWidth);
+console.log('ScreenWidth:', ScreenWidth);
 
 const App = () => {
   // This is a simple React Native app that uses Expo.
@@ -14,12 +15,6 @@ const App = () => {
   const [city, setCity] = useState(null)
   const [errorMsg, setErrorMsg] = useState(null)
   const [permitted, setPermitted] = useState(true);
-
-
-  // google maps API key : AIzaSyD18KGR4Oib02zqCZy_YmR_PJKS_7UwMu0
-  // https://www.googleapis.com/geolocation/v1/geolocate?key=AIzaSyD18KGR4Oib02zqCZy_YmR_PJKS_7UwMu0
-
-  // Reverse geocoding with google maps API https://maps.googleapis.com/maps/api/geocode/json?latlng=40.714224,-73.961452&key=AIzaSyD18KGR4Oib02zqCZy_YmR_PJKS_7UwMu0
 
   const locationData = async () => {
     const {granted} = await Location.requestForegroundPermissionsAsync();
@@ -33,24 +28,30 @@ const App = () => {
     // Get the current position of the device
     const {coords: {latitude, longitude}} = await Location.getCurrentPositionAsync({accuracy:5});
 
-    // Get the location state with the current position
+    // Get the location state with the current position (Free version)
     // const address = await Location.reverseGeocodeAsync({latitude, longitude}, {useGoogleMaps: false});
 
-    const myApiKey = "AIzaSyD18KGR4Oib02zqCZy_YmR_PJKS_7UwMu0";
-    const apiURL = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${myApiKey}`;
+    const apiURL = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_LOCATION_API_KEY}`;
+
+    console.log('API:', GOOGLE_LOCATION_API_KEY);
 
     const response = await fetch(apiURL);
     const data = await response.json();
+
+    // Check if the response is valid
+    console.log('Response:', data);
     
     // Check the country code
     if (data.results[0].address_components[5].short_name == 'AU') {
 
-      let cityNcountry = data.results[0].address_components[2].long_name + ', ' + data.results[0].address_components[5].short_name;
-      setCity(cityNcountry);
+      // let cityNcountry = data.results[0].address_components[2].long_name + ', ' + data.results[0].address_components[5].short_name;
+      setCity(data.results[0].address_components[2].long_name);
+
     } else {
       console.log('Not in Australia');
-      let cityNcountry = data.results[0].address_components[3].long_name + ', ' + data.results[0].address_components[6].short_name;
-      setCity(cityNcountry);
+
+      // let cityNcountry = data.results[0].address_components[3].long_name + ', ' + data.results[0].address_components[6].short_name;
+      setCity(data.results[0].address_components[3].long_name);
     }
 
     // Set city name from the address with EXPO Location API
@@ -136,12 +137,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
-  day: {
-    flex: 0.2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
   regDateContainer: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -161,15 +156,22 @@ const styles = StyleSheet.create({
   },
 
   weather: {
+    flex:1,
   },
 
   weatherInner: {
-    flex: 3,
+    flex: 1,
     width: ScreenWidth,
   },
 
+  day: {
+    flex: 0.2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   desc: {
-    flex: 1,
+    flex: 0.3,
     alignItems: 'center',
     marginTop: 20,
     fontSize: 25,
@@ -177,7 +179,7 @@ const styles = StyleSheet.create({
   },
 
   tempContainer: {
-    flex: 0.3,
+    flex: 0.2,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { Dimensions } from 'react-native';
-import { StyleSheet, Text, View, Button, ScrollView  } from 'react-native';
+import { StyleSheet, Text, View, Button, ScrollView, ActivityIndicator, Image } from 'react-native';
 import React, { use, useEffect, useState } from 'react';
 import {GOOGLE_LOCATION_API_KEY, WEATHER_API_KEY} from '@env';
 import * as Location from 'expo-location';
@@ -13,9 +13,9 @@ console.log('ScreenWidth:', ScreenWidth);
 const App = () => {
   // This is a simple React Native app that uses Expo.
 
-  const [location, setLocation] = useState(null)
-  const [city, setCity] = useState(null)
-  const [errorMsg, setErrorMsg] = useState(null)
+  // const [location, setLocation] = useState(null);
+  const [city, setCity] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
   const [permitted, setPermitted] = useState(true);
   const [dailyWeather, setDailyWeather] = useState([]);
 
@@ -39,13 +39,15 @@ const App = () => {
     const response = await fetch(apiURL);
     const data = await response.json();
 
-    const weatherApiURL = `https://api.openweathermap.org/data/3.0/onecall?lat=${latitude}&lon=${longitude}&exclude=daily&appid=${WEATHER_API_KEY}`;
+    const weatherApiURL = `https://api.openweathermap.org/data/3.0/onecall?lat=${latitude}&lon=${longitude}&exclude=alerts&units=metric&appid=${WEATHER_API_KEY}`;
 
     const weatherResponse = await fetch(weatherApiURL);
     const weatherData = await weatherResponse.json();
 
-    console.log('Weather Data:', weatherData.results);
-    
+    // Set Daily Weather Data
+    setDailyWeather(weatherData.daily);
+    console.log('Daily Weather Data:', weatherData.daily);
+
     // Check the country code
     if (data.results[0].address_components[5].short_name == 'AU') {
 
@@ -54,7 +56,6 @@ const App = () => {
       setCity(data.results[0].address_components[2].long_name);
 
     } else {
-      console.log('Not in Australia');
 
       // let cityNcountry = data.results[0].address_components[3].long_name + ', ' + data.results[0].address_components[6].short_name;
 
@@ -87,36 +88,44 @@ const App = () => {
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.weather}>
-        
-        <View style={styles.weatherInner}>
-          <View style={styles.day}>
-            <Text style={styles.desc}>Cloudy</Text>
+        {dailyWeather.length === 0 ? (
+          <View>
+            <ActivityIndicator size="large" color="#00ff00" />
           </View>
+        ):(
+          dailyWeather.map((day, index) => (
+          <View key={index} style={styles.weatherInner}>
+            <View style={styles.day}>
+              <View style={styles.weatherInfo}>
+                <Text style={styles.desc}>
+                  {day.weather[0].main}
+                </Text>
+              </View>
+              <View style={styles.weatherIcon}>
+                <Image 
+                  source={{uri: `https://openweathermap.org/img/wn/${day.weather[0].icon}@2x.png`}}
+                  style={{
+                    width: 50, 
+                    height: 50,
+                    marginTop: 20,
+                  }}
+                />
+              </View>
+            </View>
 
-          <View style={styles.tempContainer}>
-            <Text style={styles.temp}>25</Text>
+            <View style={styles.tempContainer}>
+              <Text style={styles.temp}>
+                {parseFloat(day.temp.day).toFixed(0)}
+              </Text>
+              <Text style={{ 
+                fontSize: 110, 
+                position: 'absolute',
+                top:50,
+                right:40,
+                }}>°</Text>
+            </View>
           </View>
-        </View>
-
-        <View style={styles.weatherInner}>
-          <View style={styles.day}>
-            <Text style={styles.desc}>Cloudy</Text>
-          </View>
-          <View style={styles.tempContainer}>
-            <Text style={styles.temp}>25</Text>
-          </View>
-        </View>
-
-        <View style={styles.weatherInner}>
-          <View style={styles.day}>
-            <Text style={styles.desc}>Cloudy</Text>
-          </View>
-          <View style={styles.tempContainer}>
-            <Text style={styles.temp}>25</Text>
-          </View>
-        </View>
-
-
+        )))}
       </ScrollView>
       <StatusBar style='auto'/>
     </View>
@@ -166,25 +175,37 @@ const styles = StyleSheet.create({
   },
 
   weatherInner: {
+    flex:3,
     width: ScreenWidth,
   },
 
   day: {
-    flex: 0.2,
+    flex: 0.15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+
+  weatherInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+
+  desc: {
+    fontSize: 25,
+    fontWeight: 'bold',
+    marginRight: 10,
+  },
+
+  weatherIcon: {
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  desc: {
-    flex: 0.3,
-    alignItems: 'center',
-    marginTop: 20,
-    fontSize: 25,
-    fontWeight: 'bold',
-  },
-
   tempContainer: {
-    flex: 0.2,
+    flex: 0.5,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -193,7 +214,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     textAlign: 'center',
     fontWeight: 'bold',
-    fontSize: 120,
+    fontSize: 200,
   }
 
 

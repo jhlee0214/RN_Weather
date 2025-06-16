@@ -18,6 +18,20 @@ const App = () => {
   const [errorMsg, setErrorMsg] = useState(null);
   const [permitted, setPermitted] = useState(true);
   const [dailyWeather, setDailyWeather] = useState([]);
+  const date = new Date();
+  const dateString = date.toLocaleDateString('en-AU', {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'Australia/Sydney', // Set the timezone to Australia/Sydney
+    timeZoneName: 'short',
+  });
+  console.log('Current Date:', dateString);
+
 
   const locationData = async () => {
     const {granted} = await Location.requestForegroundPermissionsAsync();
@@ -80,7 +94,7 @@ const App = () => {
       </View>
 
       <View style={styles.regDateContainer}>
-        <Text style={styles.regDate}>11/06/2025 Weds 10:26</Text>
+        <Text style={styles.regDate}>{dateString}</Text>
       </View>
 
       <ScrollView
@@ -123,6 +137,15 @@ const App = () => {
                 top:50,
                 right:40,
                 }}>°</Text>
+            </View>
+            <View style={styles.forcastContainer}>
+                <Text style={styles.forcastTitle}>
+                  Week Forcast
+                </Text>
+                <View style={styles.infoBox}>
+
+                </View>
+
             </View>
           </View>
         )))}
@@ -214,8 +237,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     textAlign: 'center',
     fontWeight: 'bold',
-    fontSize: 200,
-  }
+    fontSize: 180,
+  },
+
+  forcastContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  forcastTitle: {
+    fontSize: 25,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    width: "80%"
+  },
+  infoBox: {
+    flex: 0.6,
+    width: "80%",
+    backgroundColor: 'black',
+    borderRadius: 10,
+    marginTop:10,
+  },
 
 
 });

@@ -4,6 +4,7 @@ import { StyleSheet, Text, View, Button, ScrollView, ActivityIndicator, Image } 
 import React, { use, useEffect, useState } from 'react';
 import {GOOGLE_LOCATION_API_KEY, WEATHER_API_KEY} from '@env';
 import * as Location from 'expo-location';
+import {Feather} from '@expo/vector-icons';
 
 
 const ScreenWidth = Dimensions.get('window').width;
@@ -139,11 +140,58 @@ const App = () => {
                 }}>°</Text>
             </View>
             <View style={styles.forcastContainer}>
-                <Text style={styles.forcastTitle}>
-                  Week Forcast
-                </Text>
-                <View style={styles.infoBox}>
+                <View style={styles.forcastTextBox}>
+                  <Text style={styles.forcastTitle}>
+                    Week Forcast
+                  </Text>
 
+                  <Text style={styles.weekdayText}>
+                    {new Date(day.dt * 1000).toLocaleDateString('en-AU', {
+                      weekday: 'short',
+                      day: '2-digit',
+                      month: 'short',
+                    }).replace(/(\d{2}) (\w{3})/, '$1 $2')}
+                  </Text>
+                </View>
+                <View style={styles.infoBox}>
+                  <View
+                    style={{
+                      width: '30%',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      }}>
+                    <Feather name='wind' size={24} color='white' />
+                    <Text style={{fontSize: 20, color: 'white', paddingTop: 20}}>
+                      {day.wind_speed} m/s
+                    </Text>
+                    <Text style={{fontSize: 15, color: 'white', paddingTop: 10}}>Wind Speed</Text>
+                  </View>
+                  <View
+                    style={{
+                      width: '30%',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      }}>
+                    
+                    <Feather name='droplet' size={24} color='white' />
+                    <Text style={{fontSize: 20, color: 'white', paddingTop: 20}}>
+                      {parseFloat(day.pop).toFixed(0)}%
+                    </Text>
+                    <Text style={{fontSize: 15, color: 'white', textAlign: 'center'}}>Rain Probability</Text>
+
+                  </View>
+                  <View
+                    style={{
+                      width: '30%',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      }}>
+                    <Feather name='sunset' size={24} color='white' />
+                    <Text style={{fontSize: 20, color: 'white', paddingTop: 20}}>
+                      {parseFloat(day.uvi).toFixed(0)} 
+                    </Text>
+                    <Text style={{fontSize: 15, color: 'white', paddingTop: 10}}>UV Index</Text>  
+                  </View>
                 </View>
 
             </View>
@@ -245,18 +293,38 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+  forcastTextBox: {
+    width: "80%",
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
   forcastTitle: {
     fontSize: 25,
     fontWeight: 'bold',
     marginBottom: 10,
     width: "80%"
   },
+
+  weekdayText:{
+    flex: 1,
+    fontSize: 15,
+    fontWeight: 'bold',
+    height:"100%",
+    textAlign: 'right',
+    paddingTop: 10,
+    paddingRight: 10,
+  },
+
   infoBox: {
     flex: 0.6,
     width: "80%",
     backgroundColor: 'black',
     borderRadius: 10,
     marginTop:10,
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
 
 

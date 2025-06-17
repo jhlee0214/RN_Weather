@@ -10,6 +10,9 @@ import {Feather} from '@expo/vector-icons';
 const ScreenWidth = Dimensions.get('window').width;
 console.log('ScreenWidth:', ScreenWidth);
 
+console.log('GOOGLE_LOCATION_API_KEY:', GOOGLE_LOCATION_API_KEY);
+console.log('WEATHER_API_KEY:', WEATHER_API_KEY);
+
 
 const App = () => {
   // This is a simple React Native app that uses Expo.

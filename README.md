@@ -15,7 +15,9 @@ A simple and modern React Native weather application built with Expo. It allows 
 
 ## Screenshots
 
-![App Screenshot](screenshot.png)
+![App Screenshot 1](./assets/screenshot1.png)
+
+
 
 ## Getting Started
 

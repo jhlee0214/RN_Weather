@@ -381,6 +381,7 @@ const styles = StyleSheet.create({
 
   iconContainer: {
     marginTop: 60,
+    marginRight: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

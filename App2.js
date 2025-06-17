@@ -16,8 +16,10 @@ const App = () => {
 
   // const [location, setLocation] = useState(null);
   const [city, setCity] = useState(null);
-  const [latitude, setLatitude] = useState('');
-  const [longitude, setLongitude] = useState('');
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [permitted, setPermitted] = useState(true);
+  const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
 
   const [dailyWeather, setDailyWeather] = useState([]);
   const date = new Date();
@@ -52,67 +54,58 @@ const App = () => {
 
   const locationData = async () => {
     const {granted} = await Location.requestForegroundPermissionsAsync();
+
     if (!granted) {
       setPermitted(false);
       setErrorMsg('Permission to access location was denied');
-      console.log(
-        "ERROR"
-      )
       return;
     }
 
     // Get the current position of the device
     const {coords: {latitude, longitude}} = await Location.getCurrentPositionAsync({accuracy:5});
+
     // Get the location state with the current position (Free version)
     // const address = await Location.reverseGeocodeAsync({latitude, longitude}, {useGoogleMaps: false});
 
-    setLatitude(latitude);
-    setLongitude(longitude); 
-    
-    console.log('Latitude:', latitude, 'Longitude:', longitude);
-    fetchWeatherByCoords();
+    const apiURL = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_LOCATION_API_KEY}`;
+
+    const response = await fetch(apiURL);
+    const data = await response.json();
+
+    const weatherApiURL = `https://api.openweathermap.org/data/3.0/onecall?lat=${latitude}&lon=${longitude}&exclude=alerts&units=metric&appid=${WEATHER_API_KEY}`;
+
+    const weatherResponse = await fetch(weatherApiURL);
+    const weatherData = await weatherResponse.json();
+
+    // Set Daily Weather Data
+    setDailyWeather(weatherData.daily);
+    console.log('Daily Weather Data:', weatherData.daily);
+
+    // Check the country code
+    if (data.results[0].address_components[5].short_name == 'AU') {
+
+      // let cityNcountry = data.results[0].address_components[2].long_name + ', ' + data.results[0].address_components[5].short_name;
+
+      setCity(data.results[0].address_components[2].long_name);
+
+    } else {
+
+      // let cityNcountry = data.results[0].address_components[3].long_name + ', ' + data.results[0].address_components[6].short_name;
+
+      setCity(data.results[0].address_components[3].long_name);
+    }
+
+    // Set city name from the address with EXPO Location API
+    // const cityName = address[0].city;
+    // setCity(cityName);
+
   }
-
-  const fetchWeatherByCoords = async () => {
-    console.log("WHATT")
-
-    try {
-      const apiURL = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_LOCATION_API_KEY}`;
-
-      const response = await fetch(apiURL);
-      const data = await response.json();
-
-      const weatherApiURL = `https://api.openweathermap.org/data/3.0/onecall?lat=${latitude}&lon=${longitude}&exclude=alerts&units=metric&appid=${WEATHER_API_KEY}`;
-
-      const weatherResponse = await fetch(weatherApiURL);
-      const weatherData = await weatherResponse.json();
-
-      // Set Daily Weather Data
-      setDailyWeather(weatherData.daily);
-    //   console.log('Daily Weather Data:', weatherData.daily);
-        
-      // Check the country code
-      if (data.results[0].address_components[5].short_name == 'AU') {
-
-        // let cityNcountry = data.results[0].address_components[2].long_name + ', ' + data.results[0].address_components[5].short_name;
-
-        setCity(data.results[0].address_components[2].long_name);
-        console.log("City" ,data.results[0].address_components[2].long_name);
-
-      } else {
-
-        // let cityNcountry = data.results[0].address_components[3].long_name + ', ' + data.results[0].address_components[6].short_name;
-
-        setCity(data.results[0].address_components[3].long_name);
-        console.log("City: " ,data.results[0].address_components[3].long_name);
-      }
-    }
-    catch (error) {
-      console.error('Error fetching weather data:', error);
-      setErrorMsg('Failed to fetch weather data');
-    }
+  const onCitySelect = (item) => {
+    setCity(item.name + ', ' + item.country);
+    fetchWeatherByCoords(item.lat, item.lon); 
+    // 너의 기존 fetchWeather 함수에 맞게 연결
+    setSuggestions([]);
   };
-
 
   useEffect(() => {
     locationData();

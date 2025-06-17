@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { Dimensions } from 'react-native';
-import { StyleSheet, Text, View, Button, ScrollView, ActivityIndicator, Image } from 'react-native';
+import { StyleSheet, Text, View, Button, ScrollView, ActivityIndicator, Image, TextInput, TouchableOpacity, Modal } from 'react-native';
 import React, { use, useEffect, useState } from 'react';
 import {GOOGLE_LOCATION_API_KEY, WEATHER_API_KEY} from '@env';
 import * as Location from 'expo-location';
@@ -18,8 +18,13 @@ const App = () => {
   const [city, setCity] = useState(null);
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
-
   const [dailyWeather, setDailyWeather] = useState([]);
+  const [searchText, setSearchText] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
   const date = new Date();
   const dateString = date.toLocaleDateString('en-AU', {
     weekday: 'short',
@@ -37,6 +42,7 @@ const App = () => {
   const fetchSuggestions = async (text) => {
     if (text.length < 2) {
       setSuggestions([]);
+      setShowSuggestions(false);
       return;
     }
     try {
@@ -45,74 +51,96 @@ const App = () => {
       );
       const data = await res.json();
       setSuggestions(data);
+      setShowSuggestions(true);
     } catch (error) {
-      setErrorMsg('Failed to fetch city suggestions');
+      console.error('Error fetching suggestions:', error);
+      setSuggestions([]);
     }
+  };
+
+  const handleSuggestionSelect = async (suggestion) => {
+    setSearchText(suggestion.name);
+    setShowSuggestions(false);
+    setCity(suggestion.name);
+    await fetchWeatherByCoords(suggestion.lat, suggestion.lon);
   };
 
   const locationData = async () => {
-    const {granted} = await Location.requestForegroundPermissionsAsync();
-    if (!granted) {
-      setPermitted(false);
-      setErrorMsg('Permission to access location was denied');
-      console.log(
-        "ERROR"
-      )
-      return;
+    try {
+      const {granted} = await Location.requestForegroundPermissionsAsync();
+      if (!granted) {
+        setPermitted(false);
+        setErrorMsg('Permission to access location was denied');
+        return;
+      }
+
+      // Get the current position of the device
+      const {coords: {latitude, longitude}} = await Location.getCurrentPositionAsync({accuracy:5});
+      
+      setLatitude(latitude);
+      setLongitude(longitude); 
+      
+      console.log('Latitude:', latitude, 'Longitude:', longitude);
+      
+      // 위치 데이터를 받은 직후 바로 날씨 데이터를 가져옵니다
+      await fetchWeatherByCoords(latitude, longitude);
+    } catch (error) {
+      console.error('Error getting location:', error);
+      setErrorMsg('Failed to get location');
     }
-
-    // Get the current position of the device
-    const {coords: {latitude, longitude}} = await Location.getCurrentPositionAsync({accuracy:5});
-    // Get the location state with the current position (Free version)
-    // const address = await Location.reverseGeocodeAsync({latitude, longitude}, {useGoogleMaps: false});
-
-    setLatitude(latitude);
-    setLongitude(longitude); 
-    
-    console.log('Latitude:', latitude, 'Longitude:', longitude);
-    fetchWeatherByCoords();
   }
 
-  const fetchWeatherByCoords = async () => {
-    console.log("WHATT")
-
+  const fetchWeatherByCoords = async (lat, lon) => {
     try {
-      const apiURL = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_LOCATION_API_KEY}`;
-
+      const apiURL = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${GOOGLE_LOCATION_API_KEY}`;
       const response = await fetch(apiURL);
       const data = await response.json();
 
-      const weatherApiURL = `https://api.openweathermap.org/data/3.0/onecall?lat=${latitude}&lon=${longitude}&exclude=alerts&units=metric&appid=${WEATHER_API_KEY}`;
+      if (!data.results || data.results.length === 0) {
+        throw new Error('No location data found');
+      }
 
+      const weatherApiURL = `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&exclude=alerts&units=metric&appid=${WEATHER_API_KEY}`;
       const weatherResponse = await fetch(weatherApiURL);
       const weatherData = await weatherResponse.json();
 
+      if (!weatherData.daily) {
+        throw new Error('No weather data found');
+      }
+
       // Set Daily Weather Data
       setDailyWeather(weatherData.daily);
-    //   console.log('Daily Weather Data:', weatherData.daily);
-        
-      // Check the country code
-      if (data.results[0].address_components[5].short_name == 'AU') {
-
-        // let cityNcountry = data.results[0].address_components[2].long_name + ', ' + data.results[0].address_components[5].short_name;
-
-        setCity(data.results[0].address_components[2].long_name);
-        console.log("City" ,data.results[0].address_components[2].long_name);
-
-      } else {
-
-        // let cityNcountry = data.results[0].address_components[3].long_name + ', ' + data.results[0].address_components[6].short_name;
-
-        setCity(data.results[0].address_components[3].long_name);
-        console.log("City: " ,data.results[0].address_components[3].long_name);
+      
+      // Check the country code and set city name
+      const addressComponents = data.results[0].address_components;
+      if (!addressComponents) {
+        throw new Error('Invalid address components');
       }
-    }
-    catch (error) {
+
+      const cityComponent = addressComponents.find(component => 
+        component.types.includes('locality') || component.types.includes('administrative_area_level_2')
+      );
+
+      if (cityComponent) {
+        setCity(cityComponent.long_name);
+        console.log("City:", cityComponent.long_name);
+      } else {
+        throw new Error('City not found in address components');
+      }
+    } catch (error) {
       console.error('Error fetching weather data:', error);
       setErrorMsg('Failed to fetch weather data');
+      setDailyWeather([]); // Reset weather data on error
     }
   };
 
+  const handleCurrentLocation = async () => {
+    setSearchText('');
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setModalVisible(false);
+    await locationData();
+  };
 
   useEffect(() => {
     locationData();
@@ -120,11 +148,61 @@ const App = () => {
 
   return (
     <View style={styles.container}>
-
-      <View style={styles.cityContainer}>
-        <Text style={styles.city}>{city}</Text>
+      <View style={styles.cityRow}>
+        <View style={styles.cityContainer}>
+          <Text style={styles.city}>{city}</Text>
+        </View>
+        <View style={styles.iconContainer}>
+          <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.iconBtn}>
+            <Feather name="search" size={28} color="black" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleCurrentLocation} style={styles.iconBtn}>
+            <Feather name="map-pin" size={28} color="black" />
+          </TouchableOpacity>
+        </View>
       </View>
-
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search city..."
+              value={searchText}
+              onChangeText={(text) => {
+                setSearchText(text);
+                fetchSuggestions(text);
+              }}
+              autoFocus
+            />
+            {showSuggestions && suggestions.length > 0 && (
+              <View style={styles.suggestionsContainer}>
+                {suggestions.map((suggestion, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.suggestionItem}
+                    onPress={async () => {
+                      await handleSuggestionSelect(suggestion);
+                      setModalVisible(false);
+                    }}
+                  >
+                    <Text style={styles.suggestionText}>
+                      {suggestion.name}, {suggestion.country}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+            <TouchableOpacity onPress={() => setModalVisible(false)} style={{marginTop: 20}}>
+              <Text style={{color: 'blue', fontSize: 16}}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       <View style={styles.regDateContainer}>
         <Text style={styles.regDate}>{dateString}</Text>
       </View>
@@ -135,7 +213,13 @@ const App = () => {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.weather}>
         {dailyWeather.length === 0 ? (
-          <View>
+          <View
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
             <ActivityIndicator size="large" color="#00ff00" />
           </View>
         ):(
@@ -161,14 +245,8 @@ const App = () => {
 
             <View style={styles.tempContainer}>
               <Text style={styles.temp}>
-                {parseFloat(day.temp.day).toFixed(0)}
+                {parseFloat(day.temp.day).toFixed(0)}°
               </Text>
-              <Text style={{ 
-                fontSize: 110, 
-                position: 'absolute',
-                top:50,
-                right:40,
-                }}>°</Text>
             </View>
             <View style={styles.forcastContainer}>
                 <View style={styles.forcastTextBox}>
@@ -242,13 +320,13 @@ const styles = StyleSheet.create({
   },
 
   cityContainer: {
-    flex: 0.3,
+    flex: 1,
   },
 
   city: {
-    flex: 0.5,
-    marginTop: 60,
-    paddingTop: 20,
+    flex: 0.9,
+    marginTop: 50,
+    paddingTop: 10,
     fontSize: 40,
     justifyContent: 'center',
     textAlign: 'center',
@@ -299,6 +377,13 @@ const styles = StyleSheet.create({
     fontSize: 25,
     fontWeight: 'bold',
     marginRight: 10,
+  },
+
+  iconContainer: {
+    marginTop: 60,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   weatherIcon: {
@@ -356,9 +441,73 @@ const styles = StyleSheet.create({
     marginTop:10,
     flexDirection: 'row',
     justifyContent: 'center',
+    
   },
 
+  searchContainer: {
+    height: 50,
+    width: "80%",
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
+  searchInput: {
+    backgroundColor: 'white',
+    padding: 10,
+    borderRadius: 10,
+    fontSize: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  suggestionsContainer: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    marginTop: 5,
+    maxHeight: 200,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  suggestionItem: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  suggestionText: {
+    fontSize: 16,
+  },
+  cityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconBtn: {
+    marginLeft: 10,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+  },
 });
 
 export default App;
